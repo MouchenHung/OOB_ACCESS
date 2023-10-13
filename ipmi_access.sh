@@ -1,14 +1,18 @@
 #!/bin/bash
 
 APP_NAME="IPMI ACCESS TOOL"
-APP_VERSION="1.2.0"
-APP_DATE="2023/10/11"
+APP_VERSION="1.3.0"
+APP_DATE="2023/10/13"
 APP_AUTH="Mouchen"
 
 IPMITOOL_MODE="ipmitool"
 REDFISH_MODE="redfish"
+ACTION_REDFISH_GET="get"
+ACTION_REDFISH_POST="post"
 mode=$IPMITOOL_MODE
+action=""
 command=""
+data_list=""
 extend_command=""
 
 # --------------------------------- SERVER lib --------------------------------- #
@@ -27,6 +31,7 @@ ipmi_cmd_prefix=""
 ipmi_raw_cmd_prefix=""
 ipmi_init_success=0
 redfish_cmd_prefix=""
+redfish_http_prefix=""
 redfish_cmd_suffix="|python -m json.tool | GREP_COLOR='01;32' egrep -i --color=always '@odata|'"
 
 KEYWORD_SERVER_IP="SERVER_IP"
@@ -85,7 +90,8 @@ SERVER_INIT(){
 	ipmi_cmd_prefix="ipmitool -H $server_ip -U $user_name -P $user_pwd"
 	ipmi_raw_cmd_prefix="$ipmi_cmd_prefix raw"
 
-	redfish_cmd_prefix="curl -s -k -u $user_name:$user_pwd https://$server_ip/"
+	redfish_http_prefix="https://$server_ip/"
+	redfish_cmd_prefix="curl -s -k -u $user_name:$user_pwd"
 
 	#Pre-test
 	ipmi_init_success=1
@@ -164,15 +170,28 @@ REDFISH_SEND(){
 	cmd_list=$2
 	ext_cmd=$3
 
-	COLOR_PRINT "[input]" "BLUE"
-	echo $redfish_cmd_prefix$cmd_list $ext_cmd
+	#only works for POST mode
+	data=""
 
+	if [ $op == 0 ]; then
+		action_cmd="-X GET"
+	elif [ $op == 1 ]; then
+		action_cmd="-H 'Content-Type: application/json' -X POST"
+		data=$4
+		data="-d '$data'"
+	else
+		action_cmd=""
+	fi
+
+	COLOR_PRINT "[input]" "BLUE"
+	echo $redfish_cmd_prefix $action_cmd $redfish_http_prefix$cmd_list $data $ext_cmd
+	
 	# add /HMC filter
 	hmc_filter=`echo $cmd_list |sed "s/hmc//1"`
 
 	# highlight command line
 	hi_light="| GREP_COLOR='01;31' egrep -i --color=always '$hmc_filter|'"
-	cmd_list="$redfish_cmd_prefix$cmd_list $redfish_cmd_suffix $hi_light $ext_cmd"
+	cmd_list="$redfish_cmd_prefix $action_cmd $redfish_http_prefix$cmd_list $data $redfish_cmd_suffix $hi_light $ext_cmd"
 	#echo $cmd_list
 
 	COLOR_PRINT "[output]" "BLUE"
@@ -399,9 +418,11 @@ APP_HEADER(){
 
 APP_HELP(){
 	LOAD_CFG
-	echo "Usage: $0 -m <mode> -H <server_ip> -U <user_name> -P <user_password> [command_list] -g <grep with i> -t <tail>"
+	echo "Usage: $0 -H <server_ip> -U <user_name> -P <user_password> -m <mode> -a <action> [command_list] -d <data> -g <grep with i> -t <tail>"
 	echo "       [command_list] ipmi command after -H -U -P"
 	echo "       <mode> $mode(default) 0:ipmitool 1:redfish"
+	echo "       <action> $ACTION_REDFISH_GET(default) get:REDFISH_GET post:REDFISH_POST"
+	echo "       <data> data for REDFISH mode input only"
 	echo "       <server_ip> $server_ip(default)"
 	echo "       <user_name> $user_name(default)"
 	echo "       <user_password> $user_pwd(default)"
@@ -434,8 +455,8 @@ STAGE(){
 
 APP_HEADER
 
-SHORT=m:,H:,U:,P:,t:,g:,h
-LONG=mode:,ip:,user:,pwd:,tail,grep,help
+SHORT=m:,a:,d:,H:,U:,P:,t:,g:,h
+LONG=mode:,atcion,data,ip:,user:,pwd:,tail,grep,help
 OPTS=$(getopt -a -n weather --options $SHORT --longoptions $LONG -- "$@")
 
 eval set -- "$OPTS"
@@ -453,6 +474,14 @@ do
 		else
 			echo "try to enter default mode.."
 		fi
+		shift 2
+		;;
+	-a | --action )
+		action="$2"
+		shift 2
+		;;
+	-d | --data )
+		data_list="$2"
 		shift 2
 		;;
   	-H | --ip )
@@ -499,6 +528,12 @@ COLOR_PRINT "Enter $mode mode..."
 if [ $mode == $IPMITOOL_MODE ]; then
 	IPMI_SEND 0 "$command $extend_command"
 elif [ $mode == $REDFISH_MODE ]; then
-	REDFISH_SEND 0 "$command" "$extend_command"
+	if [ -z $action ]; then
+		REDFISH_SEND 0 "$command" "$extend_command"
+	elif [ $action == $ACTION_REDFISH_GET ]; then
+		REDFISH_SEND 0 "$command" "$extend_command"
+	elif [ $action == $ACTION_REDFISH_POST ]; then
+		REDFISH_SEND 1 "$command" "$extend_command" "$data_list"
+	fi
 fi
 
