@@ -5,15 +5,21 @@ Out-band ipmi/redfish access tool
     Tools that used to send oob command via ipmitool/redfish.
 
 ### Latest rlease:
-    * ipmi_access: v1.2.0 - 2023/10/11
+    * ipmi_access: v1.3.0 - 2023/10/13
 
 ### Version:
 **[ipmi_access]**
+- 1.3.0 - Support redfish post mode - 2023/10/13
+  - Feature:
+    - Support action(-a) and data(-d) ARGS for REDFISH mode.
+    - Support keyword color print in redfish mode.
+  - Bug:
+  	- none
+
 - 1.2.0 - Support redfish keywords print - 2023/10/12
   - Feature:
-  	- Support json format in redfish mode.
+    - Support json format in redfish mode.
     - Support keyword color print in redfish mode.
-	- Follow pldm_update_pkg_gen v1.5.1
   - Bug:
   	- none
 
@@ -37,21 +43,24 @@ Out-band ipmi/redfish access tool
 
 ### Usage
   - **STEP0. Create server config file(only do once)**\
-  Create server config file by following command.
-  ./ipmi_access.sh -H <server_ip> -U <user_name> -P <user_password> [command_list] -g <grep_keyword_with_i> -t <tail>\
+  Create server config file by following command.\
+  ./ipmi_access.sh -H < server_ip > -U < user_name > -P < user_password > -m < mode > -a < action > [ command_list ] -d < data > -g < grep_with_i > -t < tail >
+  
   - **STEP1. Send commands**\
 ```
 **HELP**
-mouchen@mouchen-System-Product-Name:~/Documents/BMC/common/tool/OOB_ACCESS$ ./ipmi_access.sh -h
+mouchen@mouchen-System-Product-Name:~$ ./ipmi_access.sh -h
 ===================================
 APP NAME: IPMI ACCESS TOOL
-APP VERSION: 1.2.0
-APP RELEASE DATE: 2023/10/11
+APP VERSION: 1.3.0
+APP RELEASE DATE: 2023/10/13
 APP AUTHOR: Mouchen
 ===================================
-Usage: ./ipmi_access.sh -m <mode> -H <server_ip> -U <user_name> -P <user_password> [command_list] -g <grep with i> -t <tail>
+Usage: /usr/local/bin/mc_command/mcoob -H <server_ip> -U <user_name> -P <user_password> -m <mode> -a <action> [command_list] -d <data> -g <grep with i> -t <tail>
        [command_list] ipmi command after -H -U -P
        <mode> ipmitool(default) 0:ipmitool 1:redfish
+       <action> get(default) get:REDFISH_GET post:REDFISH_POST
+       <data> data for REDFISH mode input only
        <server_ip> 10.10.11.78(default)
        <user_name> admin(default)
        <user_password> admin(default)
@@ -65,8 +74,8 @@ Features:
 mouchen@mouchen-System-Product-Name:~/Documents/BMC/common/tool/OOB_ACCESS$ ./ipmi_access.sh raw 6 1
 ===================================
 APP NAME: IPMI ACCESS TOOL
-APP VERSION: 1.2.0
-APP RELEASE DATE: 2023/10/11
+APP VERSION: 1.3.0
+APP RELEASE DATE: 2023/10/12
 APP AUTHOR: Mouchen
 ===================================
 {Server info}
@@ -84,8 +93,8 @@ ipmitool -H 10.10.11.78 -U admin -P admin raw 6 1
 mouchen@mouchen-System-Product-Name:~/Documents/BMC/common/tool/OOB_ACCESS$ ./ipmi_access.sh -m 1 hmc/redfish/v1/Chassis/HGX_GPU_SXM_1/Sensors/HGX_GPU_SXM_1_TEMP_0
 ===================================
 APP NAME: IPMI ACCESS TOOL
-APP VERSION: 1.2.0
-APP RELEASE DATE: 2023/10/11
+APP VERSION: 1.3.0
+APP RELEASE DATE: 2023/10/12
 APP AUTHOR: Mouchen
 ===================================
 {Server info}
